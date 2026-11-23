@@ -4,6 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>네온 점퍼: 룰렛 & 스킨 러너</title>
+<meta name="theme-color" content="#070914" />
+<meta name="description" content="레이저와 드론을 피하고 별 코인을 모아 룰렛으로 스킨을 뽑는 네온 러너 게임" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="네온 점퍼" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 <style>
 * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
 html, body {
@@ -81,6 +89,8 @@ box-shadow: 0 4px 16px rgba(124, 58, 237, 0.25);
 }
 .hud-btn:hover { transform: translateY(-1px); background: rgba(45, 58, 120, 0.96); }
 .hud-btn:active { transform: scale(0.97); }
+.hud-btn.install { border-color: rgba(250, 204, 21, 0.6); color: #fde68a; }
+.hidden-el { display: none !important; }
 
 .touch-controls {
 position: absolute;
@@ -373,6 +383,7 @@ cursor: not-allowed;
 <div class="pill">⭐ 코인 <span class="coin-val" id="coinText">30</span></div>
 </div>
 <div class="hud-group">
+<button class="hud-btn install hidden-el" id="installHudBtn">📲 앱 설치</button>
 <button class="hud-btn" id="openShopHudBtn">🎡 스킨 & 룰렛</button>
 <button class="hud-btn" id="restartHudBtn">↻ 다시하기</button>
 </div>
@@ -395,6 +406,7 @@ cursor: not-allowed;
 <div class="btn-row">
 <button class="btn-primary" id="startBtn">▶ 게임 시작</button>
 <button class="btn-secondary" id="openShopStartBtn">🎡 스킨 & 룰렛</button>
+<button class="btn-secondary hidden-el" id="installStartBtn" style="flex-basis:100%;">📲 크롬에 앱으로 설치하기</button>
 </div>
 </div>
 </div>
@@ -1177,6 +1189,34 @@ if (e.code === "ArrowDown" || e.code === "KeyS") {
 setSliding(false);
 }
 });
+
+// PWA: 서비스 워커 등록 + 설치 버튼
+if ("serviceWorker" in navigator && location.protocol !== "file:") {
+window.addEventListener("load", () => {
+navigator.serviceWorker.register("sw.js").catch(() => {});
+});
+}
+let deferredInstallPrompt = null;
+const installBtns = [document.getElementById("installHudBtn"), document.getElementById("installStartBtn")];
+function showInstallButtons(show) {
+installBtns.forEach(b => b.classList.toggle("hidden-el", !show));
+}
+window.addEventListener("beforeinstallprompt", e => {
+e.preventDefault();
+deferredInstallPrompt = e;
+showInstallButtons(true);
+});
+window.addEventListener("appinstalled", () => {
+deferredInstallPrompt = null;
+showInstallButtons(false);
+});
+installBtns.forEach(b => b.addEventListener("click", async () => {
+if (!deferredInstallPrompt) return;
+deferredInstallPrompt.prompt();
+try { await deferredInstallPrompt.userChoice; } catch (e) {}
+deferredInstallPrompt = null;
+showInstallButtons(false);
+}));
 
 resizeCanvas();
 resetRun();
