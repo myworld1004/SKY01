@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>네온 점퍼: 룰렛 & 스킨 러너</title>
+<style>
+* { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+html, body {
+margin: 0;
+padding: 0;
+width: 100%;
+height: 100%;
+background: #070914;
+color: #f4f7ff;
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+overflow: hidden;
+}
+#app {
+position: relative;
+width: 100%;
+height: 100%;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+background: radial-gradient(circle at 50% 25%, #161d42 0%, #090c1c 65%, #050711 100%);
+}
+canvas#gameCanvas {
+width: 100%;
+height: 100%;
+display: block;
+}
+.hud {
+position: absolute;
+top: 14px;
+left: 16px;
+right: 16px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+gap: 10px;
+pointer-events: none;
+z-index: 10;
+flex-wrap: wrap;
+}
+.hud-group {
+display: flex;
+gap: 8px;
+align-items: center;
+flex-wrap: wrap;
+}
+.pill {
+background: rgba(13, 18, 42, 0.82);
+border: 1px solid rgba(110, 231, 255, 0.32);
+backdrop-filter: blur(8px);
+padding: 8px 13px;
+border-radius: 999px;
+font-weight: 700;
+font-size: 13px;
+box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+display: flex;
+align-items: center;
+gap: 5px;
+}
+.pill .coin-val { color: #ffd447; }
+.pill .score-val { color: #67e8f9; }
+.pill .best-val { color: #f472b6; }
+.hud-btn {
+pointer-events: auto;
+background: rgba(24, 33, 74, 0.92);
+border: 1px solid rgba(167, 139, 250, 0.55);
+color: #fff;
+padding: 8px 13px;
+border-radius: 999px;
+font-weight: 700;
+font-size: 13px;
+cursor: pointer;
+transition: transform 0.12s ease, background 0.15s ease;
+box-shadow: 0 4px 16px rgba(124, 58, 237, 0.25);
+}
+.hud-btn:hover { transform: translateY(-1px); background: rgba(45, 58, 120, 0.96); }
+.hud-btn:active { transform: scale(0.97); }
+
+.touch-controls {
+position: absolute;
+bottom: 16px;
+left: 16px;
+right: 16px;
+display: none;
+justify-content: space-between;
+gap: 14px;
+z-index: 10;
+pointer-events: none;
+}
+@media (pointer: coarse), (max-width: 720px) {
+.touch-controls { display: flex; }
+}
+.touch-btn {
+pointer-events: auto;
+flex: 1;
+max-width: 180px;
+height: 58px;
+border-radius: 18px;
+border: 1px solid rgba(103, 232, 249, 0.4);
+background: rgba(15, 23, 56, 0.8);
+color: #e0f2fe;
+font-size: 16px;
+font-weight: 800;
+backdrop-filter: blur(8px);
+box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.touch-btn:active { background: rgba(56, 189, 248, 0.35); transform: scale(0.97); }
+
+.overlay {
+position: absolute;
+inset: 0;
+background: rgba(6, 9, 22, 0.78);
+backdrop-filter: blur(7px);
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 20;
+padding: 16px;
+}
+.overlay.hidden { display: none; }
+
+.card {
+width: 100%;
+max-width: 460px;
+background: linear-gradient(165deg, rgba(22, 30, 68, 0.97), rgba(11, 15, 36, 0.99));
+border: 1px solid rgba(125, 211, 252, 0.35);
+border-radius: 26px;
+padding: 24px 22px;
+text-align: center;
+box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 40px rgba(56, 189, 248, 0.14);
+}
+.title {
+margin: 0 0 8px;
+font-size: 28px;
+font-weight: 900;
+background: linear-gradient(90deg, #67e8f9, #c084fc, #f472b6);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+}
+.subtitle {
+margin: 0 0 16px;
+font-size: 14px;
+color: #cbd5e1;
+line-height: 1.5;
+}
+.controls-guide {
+background: rgba(8, 12, 28, 0.68);
+border: 1px solid rgba(148, 163, 184, 0.22);
+border-radius: 16px;
+padding: 12px 14px;
+margin-bottom: 18px;
+font-size: 13px;
+color: #e2e8f0;
+text-align: left;
+line-height: 1.65;
+}
+.kbd {
+display: inline-block;
+padding: 2px 7px;
+border-radius: 6px;
+background: rgba(51, 65, 115, 0.85);
+border: 1px solid rgba(148, 163, 184, 0.45);
+font-size: 12px;
+font-weight: 700;
+color: #fff;
+}
+.btn-row {
+display: flex;
+gap: 10px;
+justify-content: center;
+flex-wrap: wrap;
+}
+.btn-primary {
+flex: 1;
+min-width: 145px;
+padding: 13px 18px;
+border: none;
+border-radius: 15px;
+font-size: 15px;
+font-weight: 800;
+cursor: pointer;
+color: #071020;
+background: linear-gradient(135deg, #67e8f9, #38bdf8, #a78bfa);
+box-shadow: 0 8px 24px rgba(56, 189, 248, 0.35);
+transition: transform 0.12s ease, filter 0.15s ease;
+}
+.btn-primary:hover { transform: translateY(-2px); filter: brightness(1.06); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+.btn-secondary {
+flex: 1;
+min-width: 140px;
+padding: 13px 16px;
+border-radius: 15px;
+border: 1px solid rgba(250, 204, 21, 0.5);
+background: rgba(42, 34, 68, 0.9);
+color: #fde68a;
+font-size: 14px;
+font-weight: 800;
+cursor: pointer;
+transition: transform 0.12s ease, background 0.15s ease;
+}
+.btn-secondary:hover { transform: translateY(-2px); background: rgba(63, 48, 98, 0.96); }
+
+/* Roulette & Shop Modal */
+.modal-card {
+max-width: 720px;
+max-height: 90vh;
+display: flex;
+flex-direction: column;
+text-align: left;
+}
+.modal-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+gap: 12px;
+margin-bottom: 12px;
+}
+.modal-title {
+margin: 0;
+font-size: 21px;
+font-weight: 900;
+color: #f8fafc;
+}
+.close-btn {
+background: rgba(30, 41, 82, 0.9);
+border: 1px solid rgba(148, 163, 184, 0.35);
+color: #fff;
+width: 36px;
+height: 36px;
+border-radius: 12px;
+font-size: 18px;
+font-weight: 700;
+cursor: pointer;
+}
+.roulette-section {
+background: linear-gradient(135deg, rgba(88, 28, 135, 0.36), rgba(15, 23, 42, 0.88));
+border: 1px solid rgba(232, 121, 249, 0.42);
+border-radius: 20px;
+padding: 14px;
+margin-bottom: 14px;
+display: flex;
+flex-wrap: wrap;
+align-items: center;
+justify-content: center;
+gap: 18px;
+}
+.wheel-wrap {
+position: relative;
+width: 210px;
+height: 210px;
+flex-shrink: 0;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+.wheel-pointer {
+position: absolute;
+top: -6px;
+left: 50%;
+transform: translateX(-50%);
+width: 0;
+height: 0;
+border-left: 12px solid transparent;
+border-right: 12px solid transparent;
+border-top: 22px solid #facc15;
+filter: drop-shadow(0 3px 6px rgba(0,0,0,0.7));
+z-index: 5;
+}
+canvas#wheelCanvas {
+width: 210px;
+height: 210px;
+border-radius: 50%;
+box-shadow: 0 0 26px rgba(192, 132, 252, 0.35), inset 0 0 12px rgba(255,255,255,0.2);
+}
+.roulette-controls {
+flex: 1;
+min-width: 210px;
+display: flex;
+flex-direction: column;
+align-items: center;
+text-align: center;
+gap: 10px;
+}
+.gacha-result {
+min-height: 52px;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+font-size: 14px;
+font-weight: 700;
+line-height: 1.45;
+}
+.badge-common { color: #93c5fd; }
+.badge-rare { color: #c084fc; }
+.badge-legendary { color: #fde047; text-shadow: 0 0 12px rgba(250, 204, 21, 0.5); }
+
+.skin-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+gap: 9px;
+overflow-y: auto;
+padding-right: 4px;
+}
+.skin-item {
+background: rgba(13, 19, 44, 0.88);
+border: 1px solid rgba(148, 163, 184, 0.24);
+border-radius: 15px;
+padding: 10px 12px;
+display: flex;
+flex-direction: column;
+justify-content: space-between;
+gap: 8px;
+}
+.skin-item.equipped {
+border-color: #38bdf8;
+box-shadow: 0 0 16px rgba(56, 189, 248, 0.26);
+}
+.skin-top {
+display: flex;
+align-items: center;
+gap: 10px;
+}
+.skin-swatch {
+width: 32px;
+height: 32px;
+border-radius: 10px;
+border: 2px solid rgba(255,255,255,0.35);
+flex-shrink: 0;
+}
+.skin-name { font-size: 13px; font-weight: 800; }
+.skin-rarity { font-size: 11px; font-weight: 700; opacity: 0.92; }
+.skin-btn {
+width: 100%;
+padding: 7px 10px;
+border-radius: 10px;
+border: none;
+font-size: 12px;
+font-weight: 800;
+cursor: pointer;
+}
+.skin-btn.equip { background: #38bdf8; color: #061224; }
+.skin-btn.equipped-btn {
+background: rgba(34, 197, 94, 0.22);
+color: #86efac;
+border: 1px solid rgba(134, 239, 172, 0.4);
+cursor: default;
+}
+.skin-btn.locked-btn {
+background: rgba(51, 65, 85, 0.6);
+color: #94a3b8;
+cursor: not-allowed;
+}
+</style>
+</head>
+<body>
+<div id="app">
+<canvas id="gameCanvas"></canvas>
+
+<div class="hud">
+<div class="hud-group">
+<div class="pill">점수 <span class="score-val" id="scoreText">0</span></div>
+<div class="pill">최고 <span class="best-val" id="bestText">0</span></div>
+<div class="pill">⭐ 코인 <span class="coin-val" id="coinText">30</span></div>
+</div>
+<div class="hud-group">
+<button class="hud-btn" id="openShopHudBtn">🎡 스킨 & 룰렛</button>
+<button class="hud-btn" id="restartHudBtn">↻ 다시하기</button>
+</div>
+</div>
+
+<div class="touch-controls">
+<button class="touch-btn" id="slideTouchBtn">⬇ 슬라이딩</button>
+<button class="touch-btn" id="jumpTouchBtn">⬆ 2단 점프</button>
+</div>
+
+<div class="overlay" id="startOverlay">
+<div class="card">
+<h1 class="title">네온 점퍼</h1>
+<p class="subtitle">레이저와 드론을 피하고 별 코인을 모아<br/>회전 룰렛으로 9종의 스킨을 뽑아보세요!</p>
+<div class="controls-guide">
+<div><span class="kbd">Space</span> / <span class="kbd">↑</span> / 화면 탭 : <strong>2단 점프</strong></div>
+<div><span class="kbd">↓</span> / <span class="kbd">S</span> / 왼쪽 버튼 : <strong>슬라이딩(공중 드론 회피)</strong></div>
+<div>룰렛 1회: <strong>10 코인</strong> (중복 시 <strong>5 코인</strong> 환급 · 초기 30 코인 지급!)</div>
+</div>
+<div class="btn-row">
+<button class="btn-primary" id="startBtn">▶ 게임 시작</button>
+<button class="btn-secondary" id="openShopStartBtn">🎡 스킨 & 룰렛</button>
+</div>
+</div>
+</div>
+
+<div class="overlay hidden" id="gameOverOverlay">
+<div class="card">
+<h1 class="title">게임 오버!</h1>
+<p class="subtitle" id="gameOverSummary">이번 점수: 0점 · 획득 코인: +0</p>
+<div class="btn-row">
+<button class="btn-primary" id="retryBtn">↻ 한 번 더 달리기</button>
+<button class="btn-secondary" id="openShopOverBtn">🎡 스킨 룰렛</button>
+</div>
+</div>
+</div>
+
+<div class="overlay hidden" id="shopOverlay">
+<div class="card modal-card">
+<div class="modal-header">
+<h2 class="modal-title">🎡 스킨 회전 룰렛 & 보관함</h2>
+<button class="close-btn" id="closeShopBtn">✕</button>
+</div>
+
+<div class="roulette-section">
+<div class="wheel-wrap">
+<div class="wheel-pointer"></div>
+<canvas id="wheelCanvas" width="420" height="420"></canvas>
+</div>
+<div class="roulette-controls">
+<div class="gacha-result" id="gachaResult">
+<span>보유 코인: <strong style="color:#ffd447" id="shopCoinText">30</strong>개</span>
+<span style="font-size:12px; color:#cbd5e1;">룰렛을 돌려 9종 스킨을 획득하세요!</span>
+</div>
+<button class="btn-primary" style="width:100%; max-width:230px;" id="spinWheelBtn">🎡 룰렛 돌리기 (10 코인)</button>
+</div>
+</div>
+
+<div class="skin-grid" id="skinGrid"></div>
+</div>
+</div>
+</div>
+
+<script>
+(function() {
+const STORAGE_KEY = "neon_jumper_roulette_v2";
+const SKINS = [
+{ id: "neon_cube", name: "네온 큐브", rarity: "common", color: "#38bdf8", weight: 18 },
+{ id: "pixel_slime", name: "픽셀 슬라임", rarity: "common", color: "#34d399", weight: 18 },
+{ id: "cyber_cat", name: "사이버 캣", rarity: "common", color: "#f472b6", weight: 18 },
+{ id: "astro_suit", name: "우주 비행사", rarity: "rare", color: "#818cf8", weight: 10 },
+{ id: "mecha_bot", name: "로봇 메카", rarity: "rare", color: "#fb923c", weight: 10 },
+{ id: "ninja_shadow", name: "닌자 그림자", rarity: "rare", color: "#a78bfa", weight: 9 },
+{ id: "dragon_fire", name: "드래곤 파이어", rarity: "rare", color: "#ef4444", weight: 7 },
+{ id: "gold_crown", name: "골드 크라운", rarity: "legendary", color: "#facc15", weight: 5 },
+{ id: "rainbow_star", name: "레인보우 스타", rarity: "legendary", color: "#e879f9", weight: 5 }
+ ];
+
+function loadState() {
+try {
+const raw = localStorage.getItem(STORAGE_KEY);
+if (raw) {
+const parsed = JSON.parse(raw);
+return {
+bestScore: Number(parsed.bestScore) || 0,
+coins: Number.isFinite(Number(parsed.coins)) ? Number(parsed.coins) : 30,
+unlocked: Array.isArray(parsed.unlocked) && parsed.unlocked.length ? parsed.unlocked : ["neon_cube"],
+equipped: parsed.equipped || "neon_cube"
+};
+}
+} catch (e) {}
+return { bestScore: 0, coins: 30, unlocked: ["neon_cube"], equipped: "neon_cube" };
+}
+
+let state = loadState();
+function saveState() {
+try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const wheelCanvas = document.getElementById("wheelCanvas");
+const wctx = wheelCanvas.getContext("2d");
+
+const scoreText = document.getElementById("scoreText");
+const bestText = document.getElementById("bestText");
+const coinText = document.getElementById("coinText");
+const shopCoinText = document.getElementById("shopCoinText");
+const startOverlay = document.getElementById("startOverlay");
+const gameOverOverlay = document.getElementById("gameOverOverlay");
+const gameOverSummary = document.getElementById("gameOverSummary");
+const shopOverlay = document.getElementById("shopOverlay");
+const skinGrid = document.getElementById("skinGrid");
+const gachaResult = document.getElementById("gachaResult");
+const spinWheelBtn = document.getElementById("spinWheelBtn");
+
+let viewW = 960;
+let viewH = 540;
+let groundY = 420;
+
+function resizeCanvas() {
+const dpr = Math.min(window.devicePixelRatio || 1, 2);
+viewW = window.innerWidth;
+viewH = window.innerHeight;
+canvas.width = Math.floor(viewW * dpr);
+canvas.height = Math.floor(viewH * dpr);
+ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+groundY = Math.max(240, Math.min(viewH - 96, viewH * 0.76));
+if (player && player.onGround) {
+player.y = groundY - player.h;
+}
+}
+
+let mode = "menu";
+let score = 0;
+let runCoins = 0;
+let speed = 380;
+let spawnTimer = 0;
+let starTimer = 0;
+let hueShift = 0;
+let obstacles = [];
+let stars = [];
+let particles = [];
+let trail = [];
+
+const player = {
+x: 110,
+y: 370,
+w: 44,
+h: 44,
+vy: 0,
+jumps: 0,
+maxJumps: 2,
+onGround: true,
+sliding: false,
+slideTimer: 0
+};
+
+function getEquippedSkin() {
+return SKINS.find(s => s.id === state.equipped) || SKINS[0];
+}
+
+function updateHud() {
+scoreText.textContent = Math.floor(score);
+bestText.textContent = Math.floor(state.bestScore);
+coinText.textContent = state.coins;
+shopCoinText.textContent = state.coins;
+}
+
+function spawnParticles(x, y, color, count = 10) {
+for (let i = 0; i < count; i++) {
+const ang = Math.random() * Math.PI * 2;
+const spd = 60 + Math.random() * 190;
+particles.push({
+x, y,
+vx: Math.cos(ang) * spd,
+vy: Math.sin(ang) * spd - 40,
+life: 0.35 + Math.random() * 0.35,
+maxLife: 0.7,
+size: 3 + Math.random() * 4,
+color
+});
+}
+}
+
+function resetRun() {
+score = 0;
+runCoins = 0;
+speed = Math.max(360, Math.min(540, viewW * 0.42));
+spawnTimer = 0.8;
+starTimer = 0.5;
+obstacles = [];
+stars = [];
+particles = [];
+trail = [];
+
+player.x = Math.max(70, Math.min(160, viewW * 0.14));
+player.w = 44;
+player.h = 44;
+player.y = groundY - player.h;
+player.vy = 0;
+player.jumps = 0;
+player.onGround = true;
+player.sliding = false;
+player.slideTimer = 0;
+updateHud();
+}
+
+function startGame() {
+if (isSpinning) return;
+pausedForShop = false;
+startOverlay.classList.add("hidden");
+gameOverOverlay.classList.add("hidden");
+shopOverlay.classList.add("hidden");
+resetRun();
+mode = "playing";
+if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+}
+
+function triggerJump() {
+if (mode !== "playing") return;
+if (player.jumps < player.maxJumps) {
+player.sliding = false;
+player.slideTimer = 0;
+player.h = 44;
+if (player.onGround) player.y = groundY - player.h;
+player.vy = player.jumps === 0 ? -660 : -580;
+player.jumps += 1;
+player.onGround = false;
+const skin = getEquippedSkin();
+spawnParticles(player.x + player.w * 0.5, player.y + player.h, skin.color, 9);
+}
+}
+
+function setSliding(active) {
+if (mode !== "playing") return;
+if (active && player.onGround) {
+player.sliding = true;
+player.slideTimer = 0.55;
+player.h = 26;
+player.y = groundY - player.h;
+} else if (!active && player.sliding) {
+player.sliding = false;
+player.h = 44;
+player.y = groundY - player.h;
+}
+}
+
+function spawnObstacle() {
+const isAir = Math.random() < 0.36;
+if (isAir) {
+const obsW = 54;
+const obsH = 26;
+const obsY = groundY - 68;
+obstacles.push({ type: "drone", x: viewW + 40, y: obsY, w: obsW, h: obsH });
+} else {
+const obsW = 30 + Math.random() * 14;
+const obsH = 44 + Math.random() * 18;
+obstacles.push({ type: "spike", x: viewW + 40, y: groundY - obsH, w: obsW, h: obsH });
+}
+}
+
+function spawnStar() {
+const high = Math.random() < 0.55;
+const sy = high ? groundY - 125 - Math.random() * 60 : groundY - 34;
+stars.push({ x: viewW + 30, y: sy, r: 12, phase: Math.random() * Math.PI * 2 });
+}
+
+function rectsOverlap(a, b) {
+return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+function endGame() {
+if (mode === "gameover") return;
+mode = "gameover";
+const finalScore = Math.floor(score);
+if (finalScore > state.bestScore) state.bestScore = finalScore;
+saveState();
+updateHud();
+gameOverSummary.textContent = `이번 점수: ${finalScore}점 · 획득 코인: +${runCoins}개 (최고 ${state.bestScore}점)`;
+gameOverOverlay.classList.remove("hidden");
+}
+
+function update(dt) {
+hueShift = (hueShift + dt * 22) % 360;
+
+if (mode !== "playing") {
+particles.forEach(p => {
+p.x += p.vx * dt;
+p.y += p.vy * dt;
+p.vy += 420 * dt;
+p.life -= dt;
+});
+particles = particles.filter(p => p.life > 0);
+return;
+}
+
+score += dt * 16;
+speed = Math.min(820, speed + dt * 12);
+scoreText.textContent = Math.floor(score);
+
+const gravity = 1950;
+if (!player.onGround) {
+player.vy += gravity * dt;
+player.y += player.vy * dt;
+if (player.y >= groundY - player.h) {
+player.y = groundY - player.h;
+player.vy = 0;
+player.jumps = 0;
+player.onGround = true;
+}
+} else {
+player.y = groundY - player.h;
+}
+
+if (player.sliding) {
+player.slideTimer -= dt;
+if (player.slideTimer <= 0) setSliding(false);
+}
+
+const skin = getEquippedSkin();
+trail.push({
+x: player.x,
+y: player.y,
+w: player.w,
+h: player.h,
+alpha: 0.36,
+color: skin.id === "rainbow_star" ? `hsl(${hueShift}, 95%, 65%)` : skin.color
+});
+if (trail.length > 7) trail.shift();
+trail.forEach(t => { t.alpha *= 0.84; });
+
+spawnTimer -= dt;
+if (spawnTimer <= 0) {
+spawnObstacle();
+const minGap = Math.max(0.75, 1.45 - (speed - 380) / 800);
+spawnTimer = minGap + Math.random() * 0.55;
+}
+
+starTimer -= dt;
+if (starTimer <= 0) {
+spawnStar();
+starTimer = 0.7 + Math.random() * 0.85;
+}
+
+const hitbox = { x: player.x + 6, y: player.y + 4, w: player.w - 12, h: player.h - 8 };
+
+for (let i = obstacles.length - 1; i >= 0; i--) {
+const obs = obstacles[i];
+obs.x -= speed * dt;
+if (rectsOverlap(hitbox, obs)) {
+spawnParticles(player.x + player.w * 0.5, player.y + player.h * 0.5, "#fb7185", 22);
+endGame();
+return;
+}
+if (obs.x + obs.w < -80) obstacles.splice(i, 1);
+}
+
+for (let i = stars.length - 1; i >= 0; i--) {
+const st = stars[i];
+st.x -= speed * dt;
+st.phase += dt * 6;
+const starBox = { x: st.x - st.r, y: st.y - st.r, w: st.r * 2, h: st.r * 2 };
+if (rectsOverlap(hitbox, starBox)) {
+state.coins += 1;
+runCoins += 1;
+score += 25;
+saveState();
+updateHud();
+spawnParticles(st.x, st.y, "#ffd447", 10);
+stars.splice(i, 1);
+continue;
+}
+if (st.x + st.r < -50) stars.splice(i, 1);
+}
+
+particles.forEach(p => {
+p.x += p.vx * dt;
+p.y += p.vy * dt;
+p.vy += 460 * dt;
+p.life -= dt;
+});
+particles = particles.filter(p => p.life > 0);
+}
+
+function drawPlayer() {
+const skin = getEquippedSkin();
+const mainColor = skin.id === "rainbow_star" ? `hsl(${hueShift}, 95%, 62%)` : skin.color;
+
+trail.forEach(t => {
+if (t.alpha < 0.02) return;
+ctx.save();
+ctx.globalAlpha = t.alpha;
+ctx.fillStyle = t.color;
+ctx.beginPath();
+ctx.roundRect(t.x, t.y, t.w, t.h, 10);
+ctx.fill();
+ctx.restore();
+});
+
+ctx.save();
+ctx.shadowColor = mainColor;
+ctx.shadowBlur = 18;
+ctx.fillStyle = mainColor;
+ctx.beginPath();
+ctx.roundRect(player.x, player.y, player.w, player.h, 11);
+ctx.fill();
+ctx.shadowBlur = 0;
+
+ctx.fillStyle = "#081022";
+const eyeY = player.y + player.h * 0.36;
+if (skin.id === "astro_suit") {
+ctx.fillStyle = "#67e8f9";
+ctx.beginPath();
+ctx.roundRect(player.x + player.w * 0.44, player.y + player.h * 0.22, player.w * 0.46, player.h * 0.36, 6);
+ctx.fill();
+} else if (skin.id === "mecha_bot") {
+ctx.fillStyle = "#fef08a";
+ctx.fillRect(player.x + player.w * 0.46, eyeY, player.w * 0.42, 6);
+ctx.fillStyle = "#fb923c";
+ctx.fillRect(player.x + player.w * 0.45, player.y - 8, 4, 8);
+} else {
+ctx.fillRect(player.x + player.w * 0.52, eyeY, 6, 7);
+ctx.fillRect(player.x + player.w * 0.72, eyeY, 6, 7);
+}
+
+if (skin.id === "cyber_cat") {
+ctx.fillStyle = mainColor;
+ctx.beginPath();
+ctx.moveTo(player.x + 6, player.y + 4);
+ctx.lineTo(player.x + 12, player.y - 10);
+ctx.lineTo(player.x + 19, player.y + 4);
+ctx.fill();
+ctx.beginPath();
+ctx.moveTo(player.x + 24, player.y + 4);
+ctx.lineTo(player.x + 31, player.y - 10);
+ctx.lineTo(player.x + 37, player.y + 4);
+ctx.fill();
+} else if (skin.id === "gold_crown") {
+ctx.fillStyle = "#fef08a";
+ctx.beginPath();
+ctx.moveTo(player.x + 8, player.y + 2);
+ctx.lineTo(player.x + 12, player.y - 11);
+ctx.lineTo(player.x + 22, player.y - 3);
+ctx.lineTo(player.x + 32, player.y - 11);
+ctx.lineTo(player.x + 36, player.y + 2);
+ctx.closePath();
+ctx.fill();
+} else if (skin.id === "ninja_shadow") {
+ctx.fillStyle = "#fb7185";
+ctx.fillRect(player.x, player.y + 8, player.w, 6);
+} else if (skin.id === "dragon_fire") {
+ctx.fillStyle = "#fde047";
+ctx.beginPath();
+ctx.moveTo(player.x + 10, player.y + 2);
+ctx.lineTo(player.x + 4, player.y - 10);
+ctx.lineTo(player.x + 20, player.y + 2);
+ctx.fill();
+}
+
+ctx.restore();
+}
+
+function render() {
+ctx.clearRect(0, 0, viewW, viewH);
+
+ctx.save();
+ctx.strokeStyle = `hsla(${(hueShift + 200) % 360}, 70%, 55%, 0.08)`;
+ctx.lineWidth = 1;
+const gridSize = 48;
+const offset = (performance.now() * 0.04 * (mode === "playing" ? speed / 380 : 0.3)) % gridSize;
+for (let x = -offset; x < viewW; x += gridSize) {
+ctx.beginPath();
+ctx.moveTo(x, 0);
+ctx.lineTo(x, groundY);
+ctx.stroke();
+}
+for (let y = gridSize; y < groundY; y += gridSize) {
+ctx.beginPath();
+ctx.moveTo(0, y);
+ctx.lineTo(viewW, y);
+ctx.stroke();
+}
+
+ctx.fillStyle = "#0d132b";
+ctx.fillRect(0, groundY, viewW, viewH - groundY);
+ctx.strokeStyle = "#38bdf8";
+ctx.lineWidth = 3;
+ctx.shadowColor = "#38bdf8";
+ctx.shadowBlur = 14;
+ctx.beginPath();
+ctx.moveTo(0, groundY);
+ctx.lineTo(viewW, groundY);
+ctx.stroke();
+ctx.shadowBlur = 0;
+
+obstacles.forEach(obs => {
+if (obs.type === "spike") {
+ctx.fillStyle = "#fb7185";
+ctx.shadowColor = "#f43f5e";
+ctx.shadowBlur = 12;
+ctx.beginPath();
+ctx.moveTo(obs.x, obs.y + obs.h);
+ctx.lineTo(obs.x + obs.w * 0.5, obs.y);
+ctx.lineTo(obs.x + obs.w, obs.y + obs.h);
+ctx.closePath();
+ctx.fill();
+ctx.shadowBlur = 0;
+} else {
+ctx.fillStyle = "#c084fc";
+ctx.shadowColor = "#a855f7";
+ctx.shadowBlur = 12;
+ctx.beginPath();
+ctx.roundRect(obs.x, obs.y, obs.w, obs.h, 8);
+ctx.fill();
+ctx.fillStyle = "#fef08a";
+ctx.fillRect(obs.x + 10, obs.y + 8, obs.w - 20, 6);
+ctx.shadowBlur = 0;
+}
+});
+
+stars.forEach(st => {
+ctx.save();
+ctx.translate(st.x, st.y);
+ctx.rotate(Math.sin(st.phase) * 0.25);
+ctx.fillStyle = "#ffd447";
+ctx.shadowColor = "#facc15";
+ctx.shadowBlur = 14;
+ctx.beginPath();
+for (let i = 0; i < 5; i++) {
+const a1 = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+const a2 = a1 + Math.PI / 5;
+const rOut = st.r;
+const rIn = st.r * 0.45;
+if (i === 0) ctx.moveTo(Math.cos(a1) * rOut, Math.sin(a1) * rOut);
+else ctx.lineTo(Math.cos(a1) * rOut, Math.sin(a1) * rOut);
+ctx.lineTo(Math.cos(a2) * rIn, Math.sin(a2) * rIn);
+}
+ctx.closePath();
+ctx.fill();
+ctx.restore();
+});
+
+drawPlayer();
+
+particles.forEach(p => {
+ctx.save();
+ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+ctx.fillStyle = p.color;
+ctx.beginPath();
+ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+ctx.fill();
+ctx.restore();
+});
+
+ctx.restore();
+}
+
+let lastTime = performance.now();
+function loop(now) {
+const dt = Math.min(0.05, (now - lastTime) / 1000);
+lastTime = now;
+update(dt);
+render();
+requestAnimationFrame(loop);
+}
+
+let wheelAngle = 0;
+let isSpinning = false;
+
+function drawRouletteWheel(angle) {
+const cx = wheelCanvas.width / 2;
+const cy = wheelCanvas.height / 2;
+const radius = cx - 14;
+const count = SKINS.length;
+const slice = (Math.PI * 2) / count;
+
+wctx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height);
+
+for (let i = 0; i < count; i++) {
+const start = angle + i * slice;
+const end = start + slice;
+const skin = SKINS[i];
+
+wctx.save();
+wctx.beginPath();
+wctx.moveTo(cx, cy);
+wctx.arc(cx, cy, radius, start, end);
+wctx.closePath();
+wctx.fillStyle = i % 2 === 0 ? "#172047" : "#1f2b5e";
+wctx.fill();
+wctx.lineWidth = 3;
+wctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
+wctx.stroke();
+
+wctx.beginPath();
+wctx.arc(cx, cy, radius - 9, start + 0.03, end - 0.03);
+wctx.lineWidth = 14;
+wctx.strokeStyle = skin.color;
+wctx.stroke();
+
+wctx.translate(cx, cy);
+wctx.rotate(start + slice / 2);
+wctx.fillStyle = "#f8fafc";
+wctx.font = "bold 17px sans-serif";
+wctx.textAlign = "right";
+wctx.textBaseline = "middle";
+wctx.fillText(skin.name, radius - 26, 0);
+wctx.restore();
+}
+
+wctx.beginPath();
+wctx.arc(cx, cy, radius, 0, Math.PI * 2);
+wctx.lineWidth = 6;
+wctx.strokeStyle = "#a78bfa";
+wctx.stroke();
+
+wctx.beginPath();
+wctx.arc(cx, cy, 34, 0, Math.PI * 2);
+wctx.fillStyle = "#0f172a";
+wctx.fill();
+wctx.lineWidth = 4;
+wctx.strokeStyle = "#facc15";
+wctx.stroke();
+
+wctx.fillStyle = "#fde047";
+wctx.font = "bold 15px sans-serif";
+wctx.textAlign = "center";
+wctx.textBaseline = "middle";
+wctx.fillText("SPIN", cx, cy);
+}
+
+function rarityLabel(r) {
+if (r === "legendary") return '<span class="badge-legendary">★ 전설</span>';
+if (r === "rare") return '<span class="badge-rare">◆ 희귀</span>';
+return '<span class="badge-common">● 일반</span>';
+}
+
+function renderShop() {
+updateHud();
+drawRouletteWheel(wheelAngle);
+skinGrid.innerHTML = "";
+SKINS.forEach(skin => {
+const owned = state.unlocked.includes(skin.id);
+const equipped = state.equipped === skin.id;
+const item = document.createElement("div");
+item.className = "skin-item" + (equipped ? " equipped" : "");
+item.innerHTML = `
+<div class="skin-top">
+<div class="skin-swatch" style="background:${skin.color};"></div>
+<div>
+<div class="skin-name">${skin.name}</div>
+<div class="skin-rarity">${rarityLabel(skin.rarity)}</div>
+</div>
+</div>
+<button class="skin-btn ${equipped ? "equipped-btn" : owned ? "equip" : "locked-btn"}">
+${equipped ? "장착 중" : owned ? "장착하기" : "미보유"}
+</button>
+`;
+const btn = item.querySelector("button");
+if (owned && !equipped && !isSpinning) {
+btn.addEventListener("click", () => {
+state.equipped = skin.id;
+saveState();
+renderShop();
+});
+}
+skinGrid.appendChild(item);
+});
+}
+
+function pickWeightedIndex() {
+const total = SKINS.reduce((acc, s) => acc + s.weight, 0);
+let r = Math.random() * total;
+for (let i = 0; i < SKINS.length; i++) {
+r -= SKINS[i].weight;
+if (r <= 0) return i;
+}
+return 0;
+}
+
+function spinRoulette() {
+if (isSpinning) return;
+if (state.coins < 10) {
+gachaResult.innerHTML = '<span style="color:#fda4af;">코인이 부족해! 달리면서 별 코인을 모아봐!</span>';
+return;
+}
+
+state.coins -= 10;
+saveState();
+updateHud();
+
+isSpinning = true;
+spinWheelBtn.disabled = true;
+gachaResult.innerHTML = '<span style="color:#67e8f9;">🎡 룰렛이 힘차게 돌아가는 중...</span>';
+
+const targetIndex = pickWeightedIndex();
+const count = SKINS.length;
+const slice = (Math.PI * 2) / count;
+const desiredMod = (-Math.PI / 2 - (targetIndex + 0.5) * slice) % (Math.PI * 2);
+const currentMod = wheelAngle % (Math.PI * 2);
+let delta = desiredMod - currentMod;
+if (delta < 0) delta += Math.PI * 2;
+const totalRotation = delta + Math.PI * 2 * (5 + Math.floor(Math.random() * 2));
+
+const startAngle = wheelAngle;
+const endAngle = startAngle + totalRotation;
+const duration = 2600;
+const startTime = performance.now();
+
+function animateSpin(now) {
+const elapsed = now - startTime;
+const t = Math.min(1, elapsed / duration);
+const eased = 1 - Math.pow(1 - t, 3);
+wheelAngle = startAngle + (endAngle - startAngle) * eased;
+drawRouletteWheel(wheelAngle);
+
+if (t < 1) {
+requestAnimationFrame(animateSpin);
+} else {
+isSpinning = false;
+spinWheelBtn.disabled = false;
+const picked = SKINS[targetIndex];
+if (state.unlocked.includes(picked.id)) {
+state.coins += 5;
+gachaResult.innerHTML = `
+<div>${rarityLabel(picked.rarity)} <strong>${picked.name}</strong> (중복 당첨!)</div>
+<div style="font-size:12px; color:#fde047;">중복 보상으로 +5 코인 환급! (보유: ${state.coins}개)</div>
+`;
+} else {
+state.unlocked.push(picked.id);
+state.equipped = picked.id;
+gachaResult.innerHTML = `
+<div>🎉 당첨! ${rarityLabel(picked.rarity)} <strong>${picked.name}</strong></div>
+<div style="font-size:12px; color:#86efac;">자동 장착 완료! (보유: ${state.coins}개)</div>
+`;
+}
+saveState();
+renderShop();
+}
+}
+
+requestAnimationFrame(animateSpin);
+}
+
+let pausedForShop = false;
+function openShop() {
+if (mode === "playing") { mode = "paused"; pausedForShop = true; }
+renderShop();
+shopOverlay.classList.remove("hidden");
+}
+
+function closeShop() {
+if (isSpinning) return;
+shopOverlay.classList.add("hidden");
+if (pausedForShop) {
+pausedForShop = false;
+mode = "playing";
+lastTime = performance.now();
+if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+}
+}
+
+window.addEventListener("resize", resizeCanvas);
+document.getElementById("startBtn").addEventListener("click", startGame);
+document.getElementById("retryBtn").addEventListener("click", startGame);
+document.getElementById("restartHudBtn").addEventListener("click", startGame);
+document.getElementById("openShopStartBtn").addEventListener("click", openShop);
+document.getElementById("openShopHudBtn").addEventListener("click", openShop);
+document.getElementById("openShopOverBtn").addEventListener("click", openShop);
+document.getElementById("closeShopBtn").addEventListener("click", closeShop);
+spinWheelBtn.addEventListener("click", spinRoulette);
+
+const jumpTouchBtn = document.getElementById("jumpTouchBtn");
+const slideTouchBtn = document.getElementById("slideTouchBtn");
+jumpTouchBtn.addEventListener("pointerdown", e => { e.preventDefault(); triggerJump(); });
+slideTouchBtn.addEventListener("pointerdown", e => { e.preventDefault(); setSliding(true); });
+window.addEventListener("pointerup", () => setSliding(false));
+
+canvas.addEventListener("pointerdown", e => {
+if (mode === "playing") {
+triggerJump();
+}
+});
+
+window.addEventListener("keydown", e => {
+if (e.code === "Space" || e.code === "ArrowUp") {
+if (mode === "playing") {
+e.preventDefault();
+triggerJump();
+}
+} else if (e.code === "ArrowDown" || e.code === "KeyS") {
+if (mode === "playing") {
+e.preventDefault();
+setSliding(true);
+}
+}
+});
+
+window.addEventListener("keyup", e => {
+if (e.code === "ArrowDown" || e.code === "KeyS") {
+setSliding(false);
+}
+});
+
+resizeCanvas();
+resetRun();
+drawRouletteWheel(wheelAngle);
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
