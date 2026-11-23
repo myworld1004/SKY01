@@ -1,5 +1,5 @@
 // 네온 점퍼 서비스 워커: 오프라인 실행 지원
-const CACHE = "neon-jumper-v2";
+const CACHE = "neon-jumper-v3";
 const ASSETS = [
   "./",
   "./index.html",
