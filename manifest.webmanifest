@@ -1,0 +1,18 @@
+{
+  "name": "네온 점퍼: 룰렛 & 스킨 러너",
+  "short_name": "네온 점퍼",
+  "description": "레이저와 드론을 피하고 별 코인을 모아 룰렛으로 스킨을 뽑는 네온 러너 게임",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#070914",
+  "theme_color": "#070914",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
